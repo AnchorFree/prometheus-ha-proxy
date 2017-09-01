@@ -37,14 +37,14 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 		}
 
 		if as.Status == "success" {
-			switch {
-			case as.Data.ResultType == "vector":
-				for _, v := range as.Data.Result {
+			for i, v := range as.Data.Result {
+				switch {
+				case as.Data.ResultType == "vector":
 					ts.Data.Result = append(ts.Data.Result, v)
-				}
-			case as.Data.ResultType == "matrix":
-				for _, v := range as.Data.Result[0].Values {
-					ts.Data.Result[0].Values = append(ts.Data.Result[0].Values, v)
+				case as.Data.ResultType == "matrix":
+					for _, v := range as.Data.Result[i].Values {
+						ts.Data.Result[i].Values = append(ts.Data.Result[i].Values, v)
+					}
 				}
 			}
 		}

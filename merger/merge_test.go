@@ -90,3 +90,45 @@ func TestMatrixValuesVariadic(t *testing.T) {
 		t.Error("Expected: ", string(result), "got", string(*z))
 	}
 }
+
+func TestMatrixEmpty(t *testing.T) {
+	a := []byte(`{
+		"status": "success",
+		"data": {
+			"resultType": "matrix",
+			"result": []
+		}
+	}`)
+
+	b := []byte(`{
+		"status": "success",
+		"data": {
+			"resultType": "matrix",
+			"result": []
+		}
+	}`)
+	result := []byte(`{
+		"status": "success",
+		"data": {
+			"resultType": "matrix",
+			"result": []
+		}
+	}`)
+
+	var o1 interface{}
+	var o2 interface{}
+	var err error
+	z := new([]byte)
+
+	err = MergeNaively(z, &a, &b)
+	if err != nil {
+		t.Error("mergeJson failed with", err)
+	}
+
+	json.Unmarshal(*z, &o1)
+	json.Unmarshal(result, &o2)
+
+	if !reflect.DeepEqual(o1, o2) {
+		t.Error("Expected: ", string(result), "got", string(*z))
+	}
+}
