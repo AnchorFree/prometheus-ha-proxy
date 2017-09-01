@@ -7,11 +7,8 @@ import (
 type PrometheusResult struct {
 	Status string `json:"status"`
 	Data   struct {
-		ResultType string `json:"resultType"`
-		Result     []struct {
-			Metric interface{}   `json:"metric"`
-			Value  []interface{} `json:"value"`
-		} `json:"result"`
+		ResultType string        `json:"resultType"`
+		Result     []interface{} `json:"result"`
 	} `json:"data"`
 }
 
