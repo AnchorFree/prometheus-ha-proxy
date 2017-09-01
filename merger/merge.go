@@ -14,7 +14,7 @@ type PrometheusResult struct {
 
 // takes arbitratry amount of prometheus responses in json format
 // merges all of the results into one "success"-ful
-func naiveMerge(result *[]byte, merges ...*[]byte) error {
+func MergeNaively(result *[]byte, merges ...*[]byte) error {
 	var err error
 	var ts PrometheusResult
 

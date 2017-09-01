@@ -17,7 +17,7 @@ func TestSimpleJsonMerge(t *testing.T) {
 	var err error
 	z := new([]byte)
 
-	err = naiveMerge(z, &a, &b)
+	err = MergeNaively(z, &a, &b)
 	if err != nil {
 		t.Error("mergeJson failed with", err)
 	}
@@ -41,7 +41,7 @@ func TestSimpleJsonMergeVariableArgs(t *testing.T) {
 	var err error
 	z := new([]byte)
 
-	err = naiveMerge(z, &a, &b, &c)
+	err = MergeNaively(z, &a, &b, &c)
 	if err != nil {
 		t.Error("mergeJson failed with", err)
 	}

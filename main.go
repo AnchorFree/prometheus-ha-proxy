@@ -9,7 +9,7 @@ import (
 
 	"github.com/goware/urlx"
 
-	merger "github.com/onorua/prometheus-ha-proxy/merger"
+	"github.com/anchorfree/prometheus-ha-proxy/merger"
 )
 
 func main() {
