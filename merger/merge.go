@@ -7,8 +7,12 @@ import (
 type PrometheusResult struct {
 	Status string `json:"status"`
 	Data   struct {
-		ResultType string        `json:"resultType"`
-		Result     []interface{} `json:"result"`
+		ResultType string `json:"resultType"`
+		Result     []struct {
+			Metric interface{}   `json:"metric,omitempty"`
+			Values []interface{} `json:"values,omitempty"`
+			Value  interface{}   `json:"value,omitempty"`
+		} `json:"result"`
 	} `json:"data"`
 }
 
@@ -33,8 +37,15 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 		}
 
 		if as.Status == "success" {
-			for _, v := range as.Data.Result {
-				ts.Data.Result = append(ts.Data.Result, v)
+			switch {
+			case as.Data.ResultType == "vector":
+				for _, v := range as.Data.Result {
+					ts.Data.Result = append(ts.Data.Result, v)
+				}
+			case as.Data.ResultType == "matrix":
+				for _, v := range as.Data.Result[0].Values {
+					ts.Data.Result[0].Values = append(ts.Data.Result[0].Values, v)
+				}
 			}
 		}
 	}
