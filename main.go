@@ -23,6 +23,7 @@ func main() {
 
 func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 	addresses := os.Args[1:]
+	fmt.Println(r.URL.String())
 
 	var buffers []*[]byte
 	buffers = make([]*[]byte, len(addresses))
