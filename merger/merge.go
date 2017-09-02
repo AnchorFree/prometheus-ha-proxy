@@ -2,6 +2,7 @@ package merger
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 )
 
@@ -38,17 +39,19 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 		}
 
 		if as.Status == "success" {
-			for i, v := range as.Data.Result {
-				// https://prometheus.io/docs/querying/api/#expression-query-result-formats
-				switch {
-				case as.Data.ResultType == "vector":
-					ts.Data.Result = append(ts.Data.Result, v)
-				case as.Data.ResultType == "matrix":
+			// https://prometheus.io/docs/querying/api/#expression-query-result-formats
+			for i, val := range as.Data.Result {
+				switch as.Data.ResultType {
+				case "vector":
+					ts.Data.Result = append(ts.Data.Result, val)
+				case "matrix":
 					for _, v := range as.Data.Result[i].Values {
 						if !isInMatrix(reflect.ValueOf(v[0]).Interface().(float64), &ts.Data.Result[i].Values) {
 							ts.Data.Result[i].Values = append(ts.Data.Result[i].Values, v)
 						}
 					}
+				default:
+					fmt.Println("Oops: Don't know this ResultType yet")
 				}
 			}
 		}
@@ -62,7 +65,7 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 // index is used to store data within several runs, to seepdup the search
 // get prometheus matrix results, and return true if value is present
 func isInMatrix(value float64, list *[][]interface{}) bool {
-	var result bool
+	result := false
 	for _, v := range *list {
 		switch reflect.TypeOf(v[0]).Name() {
 		case "int":
