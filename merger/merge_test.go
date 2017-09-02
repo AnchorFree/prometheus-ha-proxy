@@ -65,9 +65,7 @@ func TestMatrixValuesVariadic(t *testing.T) {
 			"metric": {},
 			"values": [
 				[1504286220, "0.11923089739676468"],
-				[1504286224, "0.11923089739676468"],
-				[1504286220, "0.12527084236321268"],
-				[1504286224, "0.12527084236321268"]
+				[1504286224, "0.11923089739676468"]
 			]
 		}]
 	}
@@ -130,5 +128,13 @@ func TestMatrixEmpty(t *testing.T) {
 
 	if !reflect.DeepEqual(o1, o2) {
 		t.Error("Expected: ", string(result), "got", string(*z))
+	}
+}
+
+func TestIsInMatrix(t *testing.T) {
+	i := [][]interface{}{[]interface{}{1504289180.23, "0.13633787792895385"}}
+	result := isInMatrix(1504289180.23, &i)
+	if !result {
+		t.Error("Expected: True got", result)
 	}
 }
