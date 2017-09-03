@@ -140,3 +140,186 @@ func TestIsInMatrix(t *testing.T) {
 		t.Error("Expected: True got", result)
 	}
 }
+
+func TestInvalidJSON(t *testing.T) {
+	a := []byte(`{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {},
+			"values": [
+				[1504286220, "0.11923089739676468"],
+				[1504286224, "0.11923089739676468"]
+			]
+		}]
+	}
+}`)
+	b := []byte(`{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {},
+			"values": [
+				[1504286220, "0.12527084236321268"],
+				[1504286224, "0.12527084236321268"]
+				[1504286228, "0.12527084236321269"]
+			]
+		}]
+	}
+}`)
+	result := []byte(`{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {},
+			"values": [
+				[1504286220, "0.11923089739676468"],
+				[1504286224, "0.11923089739676468"]
+			]
+		}]
+	}
+}`)
+
+	var o1 interface{}
+	var o2 interface{}
+	var err error
+	z := new([]byte)
+
+	err = MergeNaively(z, &a, &b)
+	if err != nil {
+		t.Error("mergeJson failed with", err)
+	}
+
+	json.Unmarshal(*z, &o1)
+	json.Unmarshal(result, &o2)
+
+	if !reflect.DeepEqual(o1, o2) {
+		t.Error("Expected: ", string(result), "got", string(*z))
+	}
+}
+
+func TestVariableSetOfMetrics(t *testing.T) {
+	a := []byte(`
+	{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {
+				"host_name": "lhss-nyc-prod-1"
+			},
+			"values": [
+				[1504283307, "5.73"],
+				[1504360587, "2.56"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-4"
+			},
+			"values": [
+				[1504293387, "7.2"],
+				[1504313547, "2.33"],
+				[1504358187, "3.44"]
+			]
+		}]
+	}
+}`)
+
+	b := []byte(`{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {
+				"host_name": "lhss-nyc-prod-39"
+			},
+			"values": [
+				[1504292907, "4.94"],
+				[1504357707, "3.22"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-4"
+			},
+			"values": [
+				[1504293387, "7.2"],
+				[1504323147, "2.81"],
+				[1504335627, "3.54"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-40"
+			},
+			"values": [
+				[1504280427, "5.26"],
+				[1504293867, "4.89"]
+			]
+		}]
+	}
+}`)
+
+	result := []byte(`
+	{
+	"status": "success",
+	"data": {
+		"resultType": "matrix",
+		"result": [{
+			"metric": {
+				"host_name": "lhss-nyc-prod-1"
+			},
+			"values": [
+				[1504283307, "5.73"],
+				[1504360587, "2.56"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-4"
+			},
+			"values": [
+				[1504293387, "7.2"],
+				[1504313547, "2.33"],
+				[1504358187, "3.44"],
+				[1504323147, "2.81"],
+				[1504335627, "3.54"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-39"
+			},
+			"values": [
+				[1504292907, "4.94"],
+				[1504357707, "3.22"]
+			]
+		}, {
+			"metric": {
+				"host_name": "lhss-nyc-prod-40"
+			},
+			"values": [
+				[1504280427, "5.26"],
+				[1504293867, "4.89"]
+			]
+		}]
+	}
+} 
+`)
+
+	var o1 interface{}
+	var o2 interface{}
+	var err error
+	z := new([]byte)
+
+	err = MergeNaively(z, &a, &b)
+	if err != nil {
+		t.Error("mergeJson failed with", err)
+	}
+
+	json.Unmarshal(*z, &o1)
+	json.Unmarshal(result, &o2)
+
+	if !reflect.DeepEqual(o1, o2) {
+		t.Error("Expected: ", string(result), "got", string(*z))
+	}
+}
