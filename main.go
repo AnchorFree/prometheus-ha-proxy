@@ -36,20 +36,25 @@ func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 				fmt.Println(err)
 				continue
 			}
-			response, err := http.Get(base.ResolveReference(r.URL).String())
+			res, err := http.Get(base.ResolveReference(r.URL).String())
 			if err != nil {
 				// TODO: logging
 				fmt.Println("could not query due to: ", err)
 				continue
 			}
 
-			defer response.Body.Close()
-			t, err := ioutil.ReadAll(response.Body)
-			if err != nil {
-				continue
-			}
+			defer res.Body.Close()
+			if res.StatusCode >= 200 && res.StatusCode < 300 {
+				t, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					continue
+				}
 
-			buffers[i] = &t
+				buffers[i] = &t
+			} else {
+				// Error based on status code received
+				fmt.Println("Did not work out due to: ", res.StatusCode)
+			}
 		}
 
 		merged := new([]byte)
