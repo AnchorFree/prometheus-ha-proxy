@@ -13,6 +13,6 @@ FROM alpine
 RUN apk add curl --update-cache
 COPY --from=0 /build/prometheus-ha-proxy /prometheus-ha-proxy
 
-EXPOSE 9374
+EXPOSE 9090
 
 ENTRYPOINT ["/prometheus-ha-proxy"]
