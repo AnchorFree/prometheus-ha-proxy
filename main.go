@@ -24,11 +24,10 @@ func main() {
 func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 	addresses := os.Args[1:]
 	fmt.Println(r.URL.String())
-
 	var buffers []*[]byte
-	buffers = make([]*[]byte, len(addresses))
+
 	if r.Method == "GET" {
-		for i, a := range addresses {
+		for _, a := range addresses {
 			base, err := urlx.Parse(a)
 			if err != nil {
 				// we could not do parse address url
@@ -50,7 +49,7 @@ func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 
-				buffers[i] = &t
+				buffers = append(buffers, &t)
 			} else {
 				// Error based on status code received
 				fmt.Println("Did not work out due to: ", res.StatusCode)
