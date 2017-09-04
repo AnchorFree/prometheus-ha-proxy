@@ -12,6 +12,11 @@ import (
 	"github.com/anchorfree/prometheus-ha-proxy/merger"
 )
 
+type BackendOutput struct {
+	Body []byte
+	Err  error
+}
+
 func main() {
 
 	http.HandleFunc("/", PrometheusProxy)    // set router
@@ -23,8 +28,10 @@ func main() {
 
 func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 	addresses := os.Args[1:]
+	// TODO: logging
 	fmt.Println(r.URL.String())
 	var buffers []*[]byte
+	ch := make(chan BackendOutput)
 
 	if r.Method == "GET" {
 		for _, a := range addresses {
@@ -35,24 +42,19 @@ func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 				fmt.Println(err)
 				continue
 			}
-			res, err := http.Get(base.ResolveReference(r.URL).String())
-			if err != nil {
-				// TODO: logging
-				fmt.Println("could not query due to: ", err)
+			go PromGet(base.ResolveReference(r.URL).String(), ch)
+		}
+
+		var cnt int
+		for out := range ch {
+			cnt++
+			if out.Err != nil {
 				continue
 			}
-
-			defer res.Body.Close()
-			if res.StatusCode >= 200 && res.StatusCode < 300 {
-				t, err := ioutil.ReadAll(res.Body)
-				if err != nil {
-					continue
-				}
-
-				buffers = append(buffers, &t)
-			} else {
-				// Error based on status code received
-				fmt.Println("Did not work out due to: ", res.StatusCode)
+			buffer := out.Body
+			buffers = append(buffers, &buffer)
+			if cnt == len(addresses) {
+				close(ch)
 			}
 		}
 
@@ -60,4 +62,27 @@ func PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 		merger.MergeNaively(merged, buffers...)
 		w.Write(*merged)
 	}
+}
+
+func PromGet(url string, ch chan BackendOutput) {
+	var out BackendOutput
+
+	res, err := http.Get(url)
+	if err != nil {
+		// TODO: logging
+		fmt.Println("could not query due to: ", err)
+		out.Err = err
+		ch <- out
+		return
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		out.Body, out.Err = ioutil.ReadAll(res.Body)
+		ch <- out
+	} else {
+		// Error based on status code received
+		fmt.Println("Did not work out due to: ", res.StatusCode)
+	}
+	return
 }
