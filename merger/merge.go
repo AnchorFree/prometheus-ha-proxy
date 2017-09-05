@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 )
 
 type PrometheusResult struct {
@@ -16,8 +17,21 @@ type PrometheusResult struct {
 
 type Result struct {
 	Metric map[string]string `json:"metric"`
-	Values [][]interface{}   `json:"values,omitempty"`
+	Values Values            `json:"values,omitempty"`
 	Value  interface{}       `json:"value,omitempty"`
+}
+
+type Values [][]interface{}
+
+func (v Values) Len() int {
+	return len(v)
+}
+
+func (s Values) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s Values) Less(i, j int) bool {
+	return reflect.ValueOf(s[i][0]).Interface().(float64) < reflect.ValueOf(s[j][0]).Interface().(float64)
 }
 
 // takes arbitratry amount of prometheus responses in json format
@@ -52,6 +66,7 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 						for _, v := range val.Values {
 							if !isInMatrix(reflect.ValueOf(v[0]).Interface().(float64), &ts.Data.Result[index].Values) {
 								ts.Data.Result[index].Values = append(ts.Data.Result[index].Values, v)
+								sort.Sort(ts.Data.Result[index].Values)
 							}
 						}
 					} else {
@@ -71,7 +86,7 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 
 // index is used to store data within several runs, to seepdup the search
 // get prometheus matrix results, and return true if value is present
-func isInMatrix(value float64, list *[][]interface{}) bool {
+func isInMatrix(value float64, list *Values) bool {
 	result := false
 	for _, v := range *list {
 		switch reflect.TypeOf(v[0]).Name() {

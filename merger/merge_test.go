@@ -134,7 +134,7 @@ func TestMatrixEmpty(t *testing.T) {
 }
 
 func TestIsInMatrix(t *testing.T) {
-	i := [][]interface{}{[]interface{}{1504289180.23, "0.13633787792895385"}}
+	i := Values{[]interface{}{1504289180.23, "0.13633787792895385"}}
 	result := isInMatrix(1504289180.23, &i)
 	if !result {
 		t.Error("Expected: True got", result)
@@ -281,9 +281,9 @@ func TestVariableSetOfMetrics(t *testing.T) {
 			"values": [
 				[1504293387, "7.2"],
 				[1504313547, "2.33"],
-				[1504358187, "3.44"],
 				[1504323147, "2.81"],
-				[1504335627, "3.54"]
+				[1504335627, "3.54"],
+				[1504358187, "3.44"]
 			]
 		}, {
 			"metric": {
