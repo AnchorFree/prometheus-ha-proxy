@@ -73,7 +73,7 @@ func MergeNaively(result *[]byte, merges ...*[]byte) error {
 						ts.Data.Result = append(ts.Data.Result, val)
 					}
 				default:
-					fmt.Println("Oops: Don't know this ResultType yet")
+					fmt.Println("Oops: Don't know this ResultType yet: ", as.Data.ResultType)
 				}
 			}
 		}
