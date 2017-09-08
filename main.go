@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/goware/urlx"
 
@@ -31,8 +32,33 @@ type BackendOutput struct {
 }
 
 type PromData struct {
-	Logger *logrus.Entry
-	URLs   []*url.URL
+	Logger    *logrus.Entry
+	EndPoints []Endpoint
+}
+
+type Endpoint struct {
+	URL     *url.URL
+	Active  bool
+	Changed time.Time
+}
+
+func (ep *Endpoint) Set(url *url.URL) bool {
+	ep.URL = url
+	ep.Active = true
+	ep.Changed = time.Now()
+	return true
+}
+
+func (ep *Endpoint) Disable() bool {
+	ep.Active = false
+	ep.Changed = time.Now()
+	return true
+}
+
+func (ep *Endpoint) Enable() bool {
+	ep.Active = true
+	ep.Changed = time.Now()
+	return true
 }
 
 func main() {
@@ -42,22 +68,50 @@ func main() {
 	})
 
 	var data PromData
+	var ep Endpoint
 	data.Logger = logger
 	for _, a := range addresses {
+		logger.Debug("Parsing: ", a)
 		url, err := urlx.Parse(a)
 		if err != nil {
 			// we could not do parse address url
-			// TODO: logging
 			logger.Warn("could not parse address due to", err)
 			continue
 		}
-		data.URLs = append(data.URLs, url)
+		ep.Set(url)
+		data.EndPoints = append(data.EndPoints, ep)
 	}
+
+	go data.EndpointsProbe()
 
 	http.HandleFunc("/", data.PrometheusProxy) // set router
 	err := http.ListenAndServe(":9090", nil)   // set listen port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func (p *PromData) EndpointsProbe() {
+	// we don't want to probe urls
+	logger := p.Logger
+	t, _ := time.ParseDuration("5m")
+	ticker := time.NewTicker(t)
+	m, _ := url.Parse("/metrics")
+	for _ = range ticker.C {
+		// every t period, do
+		for i, ep := range p.EndPoints {
+			url := ep.URL.ResolveReference(m).String()
+			_, err := http.Get(url)
+			if err != nil {
+				logger.Warning(ep.URL.String(), " is DOWN")
+				p.EndPoints[i].Disable()
+				continue
+			}
+			if !ep.Active {
+				p.EndPoints[i].Enable()
+				logger.Debug("Enabled ", ep.URL.String())
+			}
+		}
 	}
 }
 
@@ -68,19 +122,23 @@ func (p *PromData) PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 	ch := make(chan BackendOutput)
 
 	if r.Method == "GET" {
-		for _, a := range p.URLs {
-			go PromGet(logger, a.ResolveReference(r.URL).String(), ch)
+		var reqs int
+		for i, ep := range p.EndPoints {
+			if ep.Active {
+				logger.Debug("endpoint ", ep.URL.String(), " is active")
+				go PromGet(logger, &p.EndPoints[i], r.URL, ch)
+				reqs++
+			}
 		}
 
 		var cnt int
 		for out := range ch {
 			cnt++
-			if out.Err != nil {
-				continue
+			if out.Err == nil {
+				buffer := out.Body
+				buffers = append(buffers, &buffer)
 			}
-			buffer := out.Body
-			buffers = append(buffers, &buffer)
-			if cnt == len(p.URLs) {
+			if cnt == reqs {
 				close(ch)
 			}
 		}
@@ -91,12 +149,15 @@ func (p *PromData) PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func PromGet(logger *logrus.Entry, url string, ch chan BackendOutput) {
+func PromGet(logger *logrus.Entry, ep *Endpoint, r *url.URL, ch chan BackendOutput) {
 	var out BackendOutput
 
+	url := ep.URL.ResolveReference(r).String()
+	logger.Debug(url)
 	res, err := http.Get(url)
 	if err != nil {
 		logger.Warning("could not query ", url, "due to: ", err)
+		ep.Disable()
 		out.Err = err
 		ch <- out
 		return
