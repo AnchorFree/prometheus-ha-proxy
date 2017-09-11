@@ -72,13 +72,13 @@ func main() {
 	data.Logger = logger
 	for _, a := range addresses {
 		logger.Debug("Parsing: ", a)
-		url, err := urlx.Parse(a)
+		my_url, err := urlx.Parse(a)
 		if err != nil {
 			// we could not do parse address url
 			logger.Warn("could not parse address due to", err)
 			continue
 		}
-		ep.Set(url)
+		ep.Set(my_url)
 		data.EndPoints = append(data.EndPoints, ep)
 	}
 
