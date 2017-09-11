@@ -102,12 +102,11 @@ func (p *PromData) EndpointsProbe() {
 		for i, ep := range p.EndPoints {
 			url := ep.URL.ResolveReference(m).String()
 			_, err := http.Get(url)
-			if err != nil {
+			switch {
+			case err != nil:
 				logger.Warning(ep.URL.String(), " is DOWN")
 				p.EndPoints[i].Disable()
-				continue
-			}
-			if !ep.Active {
+			case !ep.Active:
 				p.EndPoints[i].Enable()
 				logger.Debug("Enabled ", ep.URL.String())
 			}
