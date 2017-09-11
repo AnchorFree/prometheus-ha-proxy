@@ -97,7 +97,7 @@ func (p *PromData) EndpointsProbe() {
 	t, _ := time.ParseDuration("5m")
 	ticker := time.NewTicker(t)
 	m, _ := url.Parse("/metrics")
-	for _ = range ticker.C {
+	for range ticker.C {
 		// every t period, do
 		for i, ep := range p.EndPoints {
 			url := ep.URL.ResolveReference(m).String()
