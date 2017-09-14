@@ -72,13 +72,13 @@ func main() {
 	data.Logger = logger
 	for _, a := range addresses {
 		logger.Debug("Parsing: ", a)
-		url, err := urlx.Parse(a)
+		my_url, err := urlx.Parse(a)
 		if err != nil {
 			// we could not do parse address url
 			logger.Warn("could not parse address due to", err)
 			continue
 		}
-		ep.Set(url)
+		ep.Set(my_url)
 		data.EndPoints = append(data.EndPoints, ep)
 	}
 
@@ -97,17 +97,16 @@ func (p *PromData) EndpointsProbe() {
 	t, _ := time.ParseDuration("5m")
 	ticker := time.NewTicker(t)
 	m, _ := url.Parse("/metrics")
-	for _ = range ticker.C {
+	for range ticker.C {
 		// every t period, do
 		for i, ep := range p.EndPoints {
 			url := ep.URL.ResolveReference(m).String()
 			_, err := http.Get(url)
-			if err != nil {
+			switch {
+			case err != nil:
 				logger.Warning(ep.URL.String(), " is DOWN")
 				p.EndPoints[i].Disable()
-				continue
-			}
-			if !ep.Active {
+			case !ep.Active:
 				p.EndPoints[i].Enable()
 				logger.Debug("Enabled ", ep.URL.String())
 			}
