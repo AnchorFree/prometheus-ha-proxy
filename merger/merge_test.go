@@ -323,3 +323,28 @@ func TestVariableSetOfMetrics(t *testing.T) {
 		t.Error("Expected: ", string(result), "got", string(*z))
 	}
 }
+
+func TestLabelValues(t *testing.T) {
+	a := []byte(`{"status":"success","data":["val1","val2","val3"]}`)
+
+	b := []byte(`{"status":"success","data":["val1","val4","val3"]}`)
+
+	result := []byte(`{"status":"success","data":["val1", "val2","val3", "val4"]}`)
+
+	var o1 interface{}
+	var o2 interface{}
+	var err error
+	z := new([]byte)
+
+	err = MergeNaively(z, &a, &b)
+	if err != nil {
+		t.Error("mergeJson failed with", err)
+	}
+
+	json.Unmarshal(*z, &o1)
+	json.Unmarshal(result, &o2)
+
+	if !reflect.DeepEqual(o1, o2) {
+		t.Error("Expected: ", string(result), "got", string(*z))
+	}
+}
