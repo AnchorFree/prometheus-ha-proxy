@@ -7,12 +7,14 @@ import (
 	"sort"
 )
 
-type PrometheusResult struct {
-	Status string `json:"status"`
-	Data   struct {
-		ResultType string   `json:"resultType"`
-		Result     []Result `json:"result"`
-	} `json:"data"`
+type Output struct {
+	Status string      `json:"status"`
+	Data   interface{} `json:"data"`
+}
+
+type Data struct {
+	ResultType string   `json:"resultType"`
+	Result     []Result `json:"result"`
 }
 
 type Result struct {
@@ -36,52 +38,116 @@ func (s Values) Less(i, j int) bool {
 
 // takes arbitratry amount of prometheus responses in json format
 // merges all of the results into one "success"-ful
-func MergeNaively(result *[]byte, merges ...*[]byte) error {
+func MergeNaively(output *[]byte, merges ...*[]byte) error {
 	var err error
-	var ts PrometheusResult
+	var result Output
+	var msg_type string
+	var data_msg json.RawMessage
+	var data Data
+	var meta_data []string
 
 	for _, a := range merges {
-		var as PrometheusResult
-		if err = json.Unmarshal(*a, &as); err != nil {
+		if msg_type == "" {
+			msg_type, err = identifyMsgType(a, data_msg)
 			if err != nil && len(merges) == 1 {
 				return err
 			}
 		}
-		// we need one result to append values to, but
-		// we don't want to increase amount of metrics
-		if ts.Status == "" && as.Status == "success" {
-			ts = as
-			continue
+
+		tmp_result := Output{Data: &data_msg}
+		if err = json.Unmarshal(*a, &tmp_result); err != nil {
+			if err != nil && len(merges) == 1 {
+				return err
+			}
 		}
 
-		if as.Status == "success" {
-			// https://prometheus.io/docs/querying/api/#expression-query-result-formats
-			for _, val := range as.Data.Result {
-				switch as.Data.ResultType {
-				case "vector":
-					ts.Data.Result = append(ts.Data.Result, val)
-				case "matrix":
-					index, ok := matrixIndex(&ts.Data.Result, val.Metric)
-					if ok {
-						for _, v := range val.Values {
-							if !isInMatrix(reflect.ValueOf(v[0]).Interface().(float64), &ts.Data.Result[index].Values) {
-								ts.Data.Result[index].Values = append(ts.Data.Result[index].Values, v)
-								sort.Sort(ts.Data.Result[index].Values)
-							}
+		if tmp_result.Status == "success" {
+			result = tmp_result
+		}
+		switch msg_type {
+		case "vector":
+			var tv Data
+			err = json.Unmarshal(data_msg, &tv)
+			if data.Result == nil {
+				data = tv
+				continue
+			}
+
+			for _, val := range tv.Result {
+				data.Result = append(data.Result, val)
+			}
+		case "matrix":
+			var tm Data
+			err = json.Unmarshal(data_msg, &tm)
+			if data.Result == nil {
+				data = tm
+				continue
+			}
+			for _, val := range tm.Result {
+				index, ok := matrixIndex(&data.Result, val.Metric)
+				if ok {
+					for _, v := range val.Values {
+						if !isInMatrix(reflect.ValueOf(v[0]).Interface().(float64), &data.Result[index].Values) {
+							data.Result[index].Values = append(data.Result[index].Values, v)
+							sort.Sort(data.Result[index].Values)
 						}
-					} else {
-						ts.Data.Result = append(ts.Data.Result, val)
 					}
-				default:
-					fmt.Println("Oops: Don't know this ResultType yet: ", as.Data.ResultType)
+				} else {
+					data.Result = append(data.Result, val)
 				}
 			}
+		case "meta":
+			var d []string
+			err = json.Unmarshal(data_msg, &d)
+			if meta_data == nil {
+				meta_data = d
+				continue
+			}
+			for _, val := range d {
+				meta_data = appendUnique(meta_data, val)
+			}
+		default:
+			fmt.Println("Oops: Don't know this ResultType yet: ", msg_type)
 		}
 	}
 
-	*result, err = json.Marshal(ts)
+	switch msg_type {
+	case "vector", "matrix":
+		result.Data = data
+	case "meta":
+		sort.Strings(meta_data)
+		result.Data = meta_data
+	}
+
+	*output, err = json.Marshal(result)
 
 	return err
+}
+
+func appendUnique(data []string, val string) []string {
+	for _, v := range data {
+		if v == val {
+			return data
+		}
+	}
+	return append(data, val)
+}
+
+func identifyMsgType(a *[]byte, data_msg json.RawMessage) (string, error) {
+	var d Data
+	rs := Output{Data: &data_msg}
+	if err := json.Unmarshal(*a, &rs); err != nil {
+		if err != nil {
+			return "", err
+		}
+	}
+	json.Unmarshal(data_msg, &d)
+	switch d.ResultType {
+	case "":
+		return "meta", nil
+	default:
+		return d.ResultType, nil
+	}
 }
 
 // index is used to store data within several runs, to seepdup the search
