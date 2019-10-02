@@ -1,18 +1,29 @@
-FROM golang:1.8
+## binarybuild
+##
+FROM golang:1.13.1-alpine3.10 as binarybuilder
 
-COPY . /go/src/github.com/anchorfree/prometheus-ha-proxy
-RUN curl https://glide.sh/get | sh \
-    && cd /go/src/github.com/anchorfree/prometheus-ha-proxy \
-    && glide install -v
-RUN cd /go/src/github.com/anchorfree/prometheus-ha-proxy \
-    && CGO_ENABLED=0 go build -o /build/prometheus-ha-proxy  *.go
+# Enable support of go modules by default
+ENV GO111MODULE on
+ENV PROJECT_NAME prom-ha-proxy
 
+# Warming modules cache with project dependencies
+WORKDIR /go/src/${PROJECT_NAME}
+COPY go.mod go.sum ./
+RUN go mod download
 
+# Copy project source code to WORKDIR
+COPY . .
+
+# Run tests and build on success
+ENV CGO_ENABLED 0
+RUN go test -v ./... && GOOS=linux GOARCH=amd64 go build -ldflags '-s -w' -o /build/${PROJECT_NAME}
+
+## Final container stage
+##
 FROM alpine
-
-RUN apk add curl --update-cache
-COPY --from=0 /build/prometheus-ha-proxy /prometheus-ha-proxy
+ENV BINARY prom-ha-proxy
+WORKDIR /app
+COPY --from=binarybuilder /build/${BINARY} bin/${BINARY}
 
 EXPOSE 9090
-
-ENTRYPOINT ["/prometheus-ha-proxy"]
+ENTRYPOINT ["/app/bin/prom-ha-proxy"]

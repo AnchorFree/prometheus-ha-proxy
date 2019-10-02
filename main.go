@@ -11,8 +11,8 @@ import (
 
 	"github.com/goware/urlx"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/anchorfree/prometheus-ha-proxy/merger"
+	"github.com/AnchorFree/prometheus-ha-proxy/merger"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
