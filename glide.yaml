@@ -1,3 +1,0 @@
-package: github.com/anchorfree/prometheus-ha-proxy
-import:
-- package: github.com/goware/urlx

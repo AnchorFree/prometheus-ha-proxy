@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,8 +11,8 @@ import (
 
 	"github.com/goware/urlx"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/anchorfree/prometheus-ha-proxy/merger"
+	"github.com/AnchorFree/prometheus-ha-proxy/merger"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -85,7 +86,8 @@ func main() {
 	go data.EndpointsProbe()
 
 	http.HandleFunc("/", data.PrometheusProxy) // set router
-	err := http.ListenAndServe(":9090", nil)   // set listen port
+	http.HandleFunc("/health", HealthcheckHandler)
+	err := http.ListenAndServe(":9090", nil) // set listen port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
@@ -170,4 +172,13 @@ func PromGet(logger *logrus.Entry, ep *Endpoint, r *url.URL, ch chan BackendOutp
 		logger.Warning("Result code is not success: ", res.StatusCode)
 	}
 	return
+}
+
+// HealthcheckHandler /health
+// just returns 200 '{ "ok": true }'
+func HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := fmt.Fprintf(w, "{ \"ok\": true }"); err != nil {
+		fmt.Printf("Error in response writing: %#v", err)
+	}
 }

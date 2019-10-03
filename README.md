@@ -1,3 +1,7 @@
+[![GitHub license](https://img.shields.io/github/license/AnchorFree/prometheus-ha-proxy.svg)](https://github.com/AnchorFree/prometheus-ha-proxy/blob/master/LICENSE)
+[![Go Report](https://goreportcard.com/badge/github.com/AnchorFree/prometheus-ha-proxy)](https://goreportcard.com/report/github.com/AnchorFree/prometheus-ha-proxy)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/AnchorFree/prometheus-ha-proxy?include_prereleases)
+
 ## [Prometheus](https://prometheus.io) High Availability proxy
 
 > even though application is pretty stable, keep in mind it is still in active development, we use it in production, but it doesn't necessary mean it is ready for you. 
@@ -41,3 +45,11 @@ Evolution of this tool would be:
 - if you count() something over specific timeframe, and that timeframe happened to be time of one Prometheus server restart, you will have incorrect calculations (gap in data). In order to prevent this from happening, you can use Federation server, and then make count() over aggregated data, this may not be applicable to any case. 
 - `topk` can show more than expected amount of values.
 - `vector` output is merged naively without deduplication, which means double the results. 
+
+### Contributing
+1. Fork it!
+2. Create your feature branch: `git checkout -b my-new-feature`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin my-new-feature`
+5. Submit a pull request
+6. Make sure tests are passing
