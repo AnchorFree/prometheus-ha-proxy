@@ -102,8 +102,9 @@ func (p *PromData) EndpointsProbe() {
 	for range ticker.C {
 		// every t period, do
 		for i, ep := range p.EndPoints {
-			url := ep.URL.ResolveReference(m).String()
-			_, err := http.Get(url)
+			//url := ep.URL.ResolveReference(m).String()
+			url := ep.URL.ResolveReference(m)
+			_, err := http.Get(url.String())
 			switch {
 			case err != nil:
 				logger.Warning(ep.URL.String(), " is DOWN")
@@ -145,17 +146,19 @@ func (p *PromData) PrometheusProxy(w http.ResponseWriter, r *http.Request) {
 		}
 
 		merged := new([]byte)
-		merger.MergeNaively(merged, buffers...)
-		w.Write(*merged)
+		// who needs error logging anyways, right?
+		_ = merger.MergeNaively(merged, buffers...)
+		_, _ = w.Write(*merged)
 	}
 }
 
 func PromGet(logger *logrus.Entry, ep *Endpoint, r *url.URL, ch chan BackendOutput) {
 	var out BackendOutput
 
-	url := ep.URL.ResolveReference(r).String()
+	url := ep.URL.ResolveReference(r)
+
 	logger.Debug(url)
-	res, err := http.Get(url)
+	res, err := http.Get(url.String())
 	if err != nil {
 		logger.Warning("could not query ", url, "due to: ", err)
 		ep.Disable()

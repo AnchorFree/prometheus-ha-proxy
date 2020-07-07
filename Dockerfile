@@ -1,6 +1,6 @@
 ## binarybuild
 ##
-FROM golang:1.13.1-alpine3.10 as binarybuilder
+FROM golang:1.14-alpine3.12 as binarybuilder
 
 # Enable support of go modules by default
 ENV GO111MODULE on
@@ -20,7 +20,7 @@ RUN go test -v ./... && GOOS=linux GOARCH=amd64 go build -ldflags '-s -w' -o /bu
 
 ## Final container stage
 ##
-FROM alpine
+FROM alpine:3.12
 ENV BINARY prom-ha-proxy
 WORKDIR /app
 COPY --from=binarybuilder /build/${BINARY} bin/${BINARY}

@@ -1,0 +1,41 @@
+name: Run Gosec
+
+on: [pull_request]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source 
+        uses: actions/checkout@v2
+      - name: Run Gosec Security Scanner
+        id: gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+      - uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
+        env:
+          GOSEC: "gosec\n${{ steps.gosec.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Gosec check 📖\`${{ steps.gosec.outcome }}\`
+            
+            <details><summary>Show Gosec output</summary>
+            
+            \`\`\`${process.env.GOSEC}\`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}*`;
+              
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
